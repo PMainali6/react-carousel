@@ -1,44 +1,46 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import CarouselItem from "./CarouselItem";
 import Control from "./Contol";
+import Indicator from "./Indicator";
 
 export default function Carousel({ slides }) {
-  const [autoSlide, setAutoSlide] = useState(true);
+  const slideInterval = useRef();
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const prev = () => {
-    setAutoSlide(false);
-
+    stopSlide();
     const index = currentSlide > 0 ? currentSlide - 1 : slides.length - 1;
     setCurrentSlide(index);
-
-    setTimeout(() => setAutoSlide(true), 3000);
+    startSlide();
   };
 
   const next = () => {
-    setAutoSlide(false);
-
+    stopSlide();
     const index = currentSlide >= slides.length - 1 ? 0 : currentSlide + 1;
     setCurrentSlide(index);
+    startSlide();
+  };
 
-    setTimeout(() => setAutoSlide(true), 3000);
+  const startSlide = () => {
+    stopSlide();
+    slideInterval.current = setInterval(() => {
+      setCurrentSlide((currentSlide) =>
+        currentSlide < slides.length - 1 ? currentSlide + 1 : 0
+      );
+    }, 3000);
+  };
+
+  const stopSlide = () => {
+    if (slideInterval.current) {
+      clearInterval(slideInterval.current);
+    }
   };
 
   useEffect(() => {
-    let slideInterval;
-    if (autoSlide) {
-      slideInterval = setInterval(() => {
-        setCurrentSlide((currentSlide) =>
-          currentSlide < slides.length - 1 ? currentSlide + 1 : 0
-        );
-      }, 3000);
-    } else {
-      clearInterval(slideInterval);
-    }
-
-    return () => clearInterval(slideInterval);
-  }, [autoSlide, slides.length]);
+    startSlide();
+    return () => stopSlide();
+  }, []);
 
   return (
     <div className="carousel">
@@ -47,10 +49,17 @@ export default function Carousel({ slides }) {
         className="carousel-inner"
       >
         {slides.map((slide, key) => (
-          <CarouselItem slide={slide} key={key} />
+          <CarouselItem
+            slide={slide}
+            key={key}
+            stopSlide={stopSlide}
+            startSlide={startSlide}
+          />
         ))}
       </div>
       <Control prev={prev} next={next} />
+
+      <Indicator slidesLength={slides.length} />
     </div>
   );
 }
